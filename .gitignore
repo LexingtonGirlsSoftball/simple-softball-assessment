@@ -1,0 +1,7 @@
+node_modules/
+_bmad/
+_bmad-output/
+_bmad-input/
+.vscode/
+.DS_Store
+*.log
