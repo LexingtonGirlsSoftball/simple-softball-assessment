@@ -335,6 +335,14 @@
         .event.field-d { background: #fbbc04; color: #202124; }
         .event.field-cage1 { background: #8e24aa; }
         .event.field-cage2 { background: #ff6d00; }
+        .event.pending {
+            border: 1px solid #d93025;
+            background: #fef0ef;
+            color: #a50e0e;
+        }
+        .event.pending .event-meta {
+            opacity: 0.95;
+        }
         
         /* Weekly View */
         .week-view {
@@ -401,6 +409,14 @@
         .week-event.field-d { background: #fbbc04; color: #202124; border-left-color: #fbbc04; }
         .week-event.field-cage1 { background: #8e24aa; border-left-color: #6a1b9a; }
         .week-event.field-cage2 { background: #ff6d00; border-left-color: #e65100; }
+        .week-event.pending {
+            border-left-color: #d93025;
+            background: #fef0ef;
+            color: #a50e0e;
+        }
+        .week-event.pending:hover {
+            opacity: 0.95;
+        }
         
         .loading {
             text-align: center;
@@ -414,6 +430,11 @@
             padding: 15px;
             border-radius: 4px;
             margin-bottom: 20px;
+        }
+        .modal-status {
+            margin-top: 8px;
+            color: #d93025;
+            font-weight: 600;
         }
         .modal-overlay {
             position: fixed;
@@ -463,12 +484,73 @@
         }
         .modal-row strong {
             display: inline-block;
-            width: 100px;
+            width: 120px;
             color: #5f6368;
+            vertical-align: top;
         }
-        .modal-description {
+        .modal-row input,
+        .modal-row select,
+        .modal-row textarea {
+            width: calc(100% - 130px);
+            padding: 10px;
+            border: 1px solid #dcdcdc;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .modal-row textarea {
+            resize: vertical;
+        }
+        .modal-hint {
+            margin-top: 4px;
+            font-size: 12px;
+            color: #5f6368;
+            margin-left: 120px;
+        }
+        .request-btn {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            margin-right: 12px;
+        }
+        .request-btn:hover {
+            background: #1558b0;
+        }
+        .request-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+            justify-content: flex-end;
+        }
+        .request-actions button {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .request-actions button[type="button"]:last-child {
+            background: #e8eaed;
+            color: #202124;
+        }
+        .request-actions button:hover {
+            opacity: 0.95;
+        }
+        .modal-content form {
+            margin-top: 12px;
+        }
+        .modal-content label {
+            display: inline-block;
+            width: 120px;
             margin-top: 10px;
-            white-space: pre-wrap;
+            font-size: 14px;
             color: #3c4043;
         }
     </style>
@@ -505,6 +587,9 @@
                     <button onclick="switchView(event, 'week')">Week</button>
                 </div>
             </div>
+            <div class="header-right">
+                <button id="requestPracticeButton" class="request-btn">LGS Request Practice</button>
+            </div>
         </div>
         
         <div id="error" class="error" style="display: none;"></div>
@@ -537,8 +622,67 @@
                 <h2 id="eventModalTitle" class="modal-title"></h2>
                 <div id="modalTime" class="modal-row"></div>
                 <div id="modalLocation" class="modal-row"></div>
+                <div id="modalStatus" class="modal-row modal-status" style="display:none"></div>
                 <div id="modalDescription" class="modal-description"></div>
             </div>
+        </div>
+    </div>
+
+    <div id="requestModal" class="modal-overlay" onclick="if (event.target === this) closeRequestModal()">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="requestModalTitle">
+            <button class="modal-close" aria-label="Close request form" onclick="closeRequestModal()">×</button>
+            <h2 id="requestModalTitle" class="modal-title">Request Practice Time</h2>
+            <div class="modal-description">Choose one of the league-approved weekly practice periods and create a draft Google Calendar event for approval. The event title will be formatted as: <strong>Field #: Division TeamName CoachLastName</strong>.</div>
+            <form id="practiceRequestForm">
+                <div class="modal-row">
+                    <label for="requestPeriod"><strong>Period</strong></label>
+                    <select id="requestPeriod" required></select>
+                </div>
+                <div class="modal-row">
+                    <label for="requestDay"><strong>Practice Day</strong></label>
+                    <select id="requestDay" required></select>
+                </div>
+                <div class="modal-row">
+                    <label for="requestTimeSlot"><strong>Time Slot</strong></label>
+                    <select id="requestTimeSlot" required></select>
+                </div>
+                <div class="modal-row">
+                    <label for="requestDate"><strong>Scheduled Date</strong></label>
+                    <input id="requestDate" type="text" readonly />
+                </div>
+                <div id="requestDateHint" class="modal-hint"></div>
+                <div class="modal-row">
+                    <label for="requestDivision"><strong>Division</strong></label>
+                    <input id="requestDivision" type="text" placeholder="e.g. 12U" required />
+                </div>
+                <div class="modal-row">
+                    <label for="requestTeam"><strong>Team Name</strong></label>
+                    <input id="requestTeam" type="text" placeholder="e.g. Da Bears" required />
+                </div>
+                <div class="modal-row">
+                    <label for="requestCoach"><strong>Coach Last Name</strong></label>
+                    <input id="requestCoach" type="text" placeholder="e.g. Ditka" required />
+                </div>
+                <div class="modal-row">
+                    <label for="requestField"><strong>Field</strong></label>
+                    <select id="requestField">
+                        <option value="Field A">Field A</option>
+                        <option value="Field B">Field B</option>
+                        <option value="Field C">Field C</option>
+                        <option value="Field D">Field D</option>
+                        <option value="Cage 1">Cage 1</option>
+                        <option value="Cage 2">Cage 2</option>
+                    </select>
+                </div>
+                <div class="modal-row">
+                    <label for="requestDetails"><strong>Notes</strong></label>
+                    <textarea id="requestDetails" rows="4" placeholder="Add details, coach contact, opponent or special instructions"></textarea>
+                </div>
+                <div class="request-actions">
+                    <button type="button" onclick="openGoogleCalendarRequest()">Create Draft Calendar Request</button>
+                    <button type="button" onclick="closeRequestModal()">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -555,6 +699,34 @@
         let searchTokens = [];
         // single active filter at a time; 'all' shows everything (month only)
         let activeFilter = 'all';
+
+        const REQUEST_ADMIN_EMAILS = 'girlssoftballlgssc@gmail.com';
+        const GOOGLE_CALENDAR_TIMEZONE = 'America/New_York';
+        const LEAGUE_PRACTICE_PERIODS = [
+            { id: 'aug23sep20', label: 'Pre-Season: Aug 23 - Sept 20, 2026', start: '2026-08-23', end: '2026-09-20', days: ['monday', 'tuesday', 'thursday'] },
+            { id: 'aug23nov06', label: 'Fall Season: Aug 23 - Nov 6, 2026', start: '2026-08-23', end: '2026-11-06', days: ['wednesday', 'friday', 'saturday', 'sunday'] }
+        ];
+        const PRACTICE_DAYS = [
+            { id: 'monday', label: 'Monday', weekday: 1 },
+            { id: 'tuesday', label: 'Tuesday', weekday: 2 },
+            { id: 'wednesday', label: 'Wednesday', weekday: 3 },
+            { id: 'thursday', label: 'Thursday', weekday: 4 },
+            { id: 'friday', label: 'Friday', weekday: 5 },
+            { id: 'saturday', label: 'Saturday', weekday: 6 },
+            { id: 'sunday', label: 'Sunday', weekday: 0 }
+        ];
+        const TIME_SLOTS = [
+            { id: 'preseason_630_730', label: '6:00 PM - 7:30 PM', start: '18:00', end: '19:30', days: ['monday', 'tuesday', 'thursday'] },
+            { id: 'preseason_730_900', label: '7:30 PM - 9:00 PM', start: '19:30', end: '21:00', days: ['monday', 'tuesday', 'thursday'] },
+            { id: 'wedfri_630_730', label: '6:00 PM - 7:30 PM', start: '18:00', end: '19:30', days: ['wednesday', 'friday'] },
+            { id: 'wedfri_730_900', label: '7:30 PM - 9:00 PM', start: '19:30', end: '21:00', days: ['wednesday', 'friday'] },
+            { id: 'weekend_9_11', label: '9:00 AM - 11:00 AM', start: '09:00', end: '11:00', days: ['saturday', 'sunday'] },
+            { id: 'weekend_11_1', label: '11:00 AM - 1:00 PM', start: '11:00', end: '13:00', days: ['saturday', 'sunday'] },
+            { id: 'weekend_1_3', label: '1:00 PM - 3:00 PM', start: '13:00', end: '15:00', days: ['saturday', 'sunday'] },
+            { id: 'weekend_3_5', label: '3:00 PM - 5:00 PM', start: '15:00', end: '17:00', days: ['saturday', 'sunday'] },
+            { id: 'weekend_5_7', label: '5:00 PM - 7:00 PM', start: '17:00', end: '19:00', days: ['saturday', 'sunday'] },
+            { id: 'weekend_7_9', label: '7:00 PM - 9:00 PM', start: '19:00', end: '21:00', days: ['saturday', 'sunday'] }
+        ];
 
         function onSearchInput(e) {
             const v = e.target.value || '';
@@ -624,8 +796,199 @@
                     clearBtn.style.display = sb.value ? 'inline-flex' : 'none';
                 }
             }
+            const requestBtn = document.getElementById('requestPracticeButton');
+            if (requestBtn) {
+                requestBtn.addEventListener('click', openRequestModal);
+            }
+            buildPracticeRequestForm();
             fetchCalendarEvents();
         });
+
+        function buildPracticeRequestForm() {
+            const periodSelect = document.getElementById('requestPeriod');
+            const daySelect = document.getElementById('requestDay');
+            const timeSelect = document.getElementById('requestTimeSlot');
+            if (!periodSelect || !daySelect || !timeSelect) return;
+
+            periodSelect.innerHTML = '';
+            LEAGUE_PRACTICE_PERIODS.forEach(period => {
+                const option = document.createElement('option');
+                option.value = period.id;
+                option.textContent = period.label;
+                periodSelect.appendChild(option);
+            });
+
+            function populatePracticeDays(periodId) {
+                const period = LEAGUE_PRACTICE_PERIODS.find(item => item.id === periodId) || LEAGUE_PRACTICE_PERIODS[0];
+                daySelect.innerHTML = '';
+                PRACTICE_DAYS.filter(day => period.days.includes(day.id)).forEach(day => {
+                    const option = document.createElement('option');
+                    option.value = day.id;
+                    option.textContent = day.label;
+                    daySelect.appendChild(option);
+                });
+                const firstDay = daySelect.querySelector('option');
+                daySelect.value = firstDay ? firstDay.value : '';
+            }
+
+            function populateTimeSlots(selectedDayId) {
+                timeSelect.innerHTML = '';
+                const availableSlots = TIME_SLOTS.filter(slot => slot.days.includes(selectedDayId));
+                availableSlots.forEach(slot => {
+                    const option = document.createElement('option');
+                    option.value = slot.id;
+                    option.textContent = slot.label;
+                    timeSelect.appendChild(option);
+                });
+                if (availableSlots.length) {
+                    timeSelect.value = availableSlots[0].id;
+                }
+            }
+
+            periodSelect.addEventListener('change', () => {
+                populatePracticeDays(periodSelect.value);
+                populateTimeSlots(daySelect.value);
+                updatePracticeRequestDetails();
+            });
+            daySelect.addEventListener('change', () => {
+                populateTimeSlots(daySelect.value);
+                updatePracticeRequestDetails();
+            });
+            timeSelect.addEventListener('change', updatePracticeRequestDetails);
+
+            periodSelect.value = LEAGUE_PRACTICE_PERIODS[0]?.id || '';
+            populatePracticeDays(periodSelect.value);
+            populateTimeSlots(daySelect.value);
+            updatePracticeRequestDetails();
+        }
+
+        function updatePracticeRequestDetails() {
+            const periodSelect = document.getElementById('requestPeriod');
+            const daySelect = document.getElementById('requestDay');
+            const dateInput = document.getElementById('requestDate');
+            const hint = document.getElementById('requestDateHint');
+            if (!periodSelect || !daySelect || !dateInput || !hint) return;
+
+            const period = LEAGUE_PRACTICE_PERIODS.find(item => item.id === periodSelect.value) || LEAGUE_PRACTICE_PERIODS[0];
+            const day = PRACTICE_DAYS.find(item => item.id === daySelect.value) || PRACTICE_DAYS[0];
+            const scheduledDate = getPracticeDateForWeekday(period, day.weekday);
+
+            if (scheduledDate) {
+                dateInput.value = scheduledDate;
+                hint.textContent = `This event will recur weekly on ${day.label} through ${period.end}.`;
+            } else {
+                dateInput.value = '';
+                hint.textContent = `No ${day.label} exists within the selected period.`;
+            }
+        }
+
+        function getPracticeDateForWeekday(period, weekday) {
+            const start = new Date(period.start + 'T00:00:00');
+            const end = new Date(period.end + 'T23:59:59');
+            const date = new Date(start);
+            while (date <= end) {
+                if (date.getDay() === weekday) {
+                    return date.toISOString().split('T')[0];
+                }
+                date.setDate(date.getDate() + 1);
+            }
+            return null;
+        }
+
+        function openRequestModal() {
+            const modal = document.getElementById('requestModal');
+            if (!modal) return;
+            modal.classList.add('active');
+        }
+
+        function closeRequestModal() {
+            const modal = document.getElementById('requestModal');
+            if (!modal) return;
+            modal.classList.remove('active');
+        }
+
+        function collectPracticeRequestData() {
+            const periodId = document.getElementById('requestPeriod')?.value;
+            const dayId = document.getElementById('requestDay')?.value;
+            const slotId = document.getElementById('requestTimeSlot')?.value;
+            const requestDate = document.getElementById('requestDate')?.value;
+            const requestDivision = document.getElementById('requestDivision')?.value.trim();
+            const requestTeam = document.getElementById('requestTeam')?.value.trim();
+            const requestCoach = document.getElementById('requestCoach')?.value.trim();
+            const requestField = document.getElementById('requestField')?.value;
+            const requestDetails = document.getElementById('requestDetails')?.value.trim();
+            const period = LEAGUE_PRACTICE_PERIODS.find(item => item.id === periodId);
+            const day = PRACTICE_DAYS.find(item => item.id === dayId);
+            const slot = TIME_SLOTS.find(item => item.id === slotId);
+            if (!period || !day || !slot || !requestDate || !requestDivision || !requestTeam || !requestCoach) {
+                alert('Please complete the request period, practice day, time slot, division, team name, and coach fields.');
+                return null;
+            }
+            return {
+                period,
+                requestDate,
+                requestStartTime: slot.start,
+                requestEndTime: slot.end,
+                requestDivision,
+                requestTeam,
+                requestCoach,
+                requestField,
+                requestDetails,
+                requestDay: day.label,
+                timeLabel: slot.label
+            };
+        }
+
+        function openGoogleCalendarRequest() {
+            const data = collectPracticeRequestData();
+            if (!data) return;
+            closeRequestModal();
+            const startDateTime = formatGoogleCalendarDateTime(data.requestDate, data.requestStartTime);
+            const endDateTime = formatGoogleCalendarDateTime(data.requestDate, data.requestEndTime);
+            const details = [
+                `League request period: ${data.period.label}`,
+                `Practice day: ${data.requestDay}`,
+                `Time slot: ${data.timeLabel}`,
+                `Requested location: ${data.requestField}`,
+                '',
+                `Coach: ${data.requestCoach}`,
+                `Notes: ${data.requestDetails || 'None'}`,
+                '',
+                'Submit this event for approval from the calendar admins.'
+            ].join('\n');
+            const byDayMap = { Monday: 'MO', Tuesday: 'TU', Wednesday: 'WE', Thursday: 'TH', Friday: 'FR', Saturday: 'SA', Sunday: 'SU' };
+            const untilDate = data.period.end.replace(/-/g, '');
+            const recurrenceRules = `RRULE:FREQ=WEEKLY;BYDAY=${byDayMap[data.requestDay] || 'WE'};UNTIL=${untilDate}`;
+            const title = `${data.requestField}: ${data.requestDivision} ${data.requestTeam} ${data.requestCoach}`;
+            const params = new URLSearchParams({
+                action: 'TEMPLATE',
+                text: title,
+                dates: `${startDateTime}/${endDateTime}`,
+                details,
+                location: '1159 Nazareth Rd, Lexington, SC',
+                ctz: GOOGLE_CALENDAR_TIMEZONE,
+                recur: recurrenceRules
+            });
+            params.append('add', CALENDAR_ID);
+            const url = `https://calendar.google.com/calendar/r/eventedit?${params.toString()}`;
+            window.open(url, '_blank');
+        }
+
+        function formatGoogleCalendarDateTime(date, time) {
+            const [year, month, day] = date.split('-');
+            const [hour, minute] = time.split(':');
+            return `${year}${month}${day}T${hour}${minute}00`;
+        }
+
+        function onSearchInput(e) {
+            const v = e.target.value || '';
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                searchQuery = v.trim();
+                searchTokens = searchQuery.length ? searchQuery.toUpperCase().split(/\s+/).filter(Boolean) : [];
+                if (currentView === 'month') renderMonth(); else renderWeek();
+            }, 220);
+        }
 
         async function fetchCalendarEvents() {
             try {
@@ -684,6 +1047,12 @@
             document.getElementById('modalTime').innerHTML = `<strong>Time:</strong> ${evt.start} - ${evt.end}`;
             document.getElementById('modalLocation').innerHTML = `<strong>Location:</strong> ${evt.location || '1159 Nazareth Rd, Lexington, SC'}`;
             document.getElementById('modalDescription').textContent = evt.description || '';
+            if (evt.statusLabel) {
+                document.getElementById('modalStatus').innerHTML = `<strong>Status:</strong> ${evt.statusLabel}`;
+                document.getElementById('modalStatus').style.display = 'block';
+            } else {
+                document.getElementById('modalStatus').style.display = 'none';
+            }
             document.getElementById('eventModal').classList.add('active');
         }
 
@@ -798,10 +1167,11 @@
                 const dayEvents = getEventsForDay(date);
                 dayEvents.forEach(evt => {
                     const eventDiv = document.createElement('div');
-                    eventDiv.className = `event field-${evt.field}`;
+                    eventDiv.className = `event field-${evt.field}${evt.pending ? ' pending' : ''}`;
                     const meta = evt.orgName || evt.calendar || '';
+                    const pendingLabel = evt.pending ? 'PENDING' : '';
                     eventDiv.innerHTML = `
-                        <div class="event-meta">${evt.start}: ${meta}${meta && evt.ageGroup ? ' | ' : ''}${evt.ageGroup || ''}</div>
+                        <div class="event-meta">${evt.start}: ${meta}${meta && evt.ageGroup ? ' | ' : ''}${evt.ageGroup || ''}${pendingLabel ? ' | ' + pendingLabel : ''}</div>
                     `;
                     eventDiv.title = `${evt.start} - ${evt.end} ${evt.title}`;
                     eventDiv.addEventListener('click', () => showEventPopup(evt));
@@ -830,6 +1200,9 @@
                     if ((!searchTokens || !searchTokens.length) && activeFilter !== 'all' && activeFilter !== category) return;
                     const fieldLabel = category === 'cage1' ? 'Cage 1' : category === 'cage2' ? 'Cage 2' : `Field ${category.toUpperCase()}`;
                     const { orgName, ageGroup } = parseEventSummary(evt.summary);
+                    const hasUnacceptedAttendee = Array.isArray(evt.attendees) && evt.attendees.some(att => att.email !== (evt.organizer?.email || '') && att.responseStatus && att.responseStatus !== 'accepted');
+                    const pending = (evt.status && evt.status !== 'confirmed') || hasUnacceptedAttendee;
+                    const statusLabel = pending ? (evt.status && evt.status !== 'confirmed' ? evt.status.toUpperCase() : 'PENDING RSVP') : '';
                     // Apply tokenized text search filter (order-insensitive across org, age, summary, calendar)
                     if (searchTokens && searchTokens.length) {
                         const combined = [orgName || '', ageGroup || '', evt.summary || '', (evt.organizer ? (evt.organizer.displayName || evt.organizer.email) : '')].join(' ').toUpperCase();
@@ -852,6 +1225,8 @@
                         description: evt.description || '',
                         link: evt.htmlLink || '',
                         calendar: evt.organizer ? evt.organizer.displayName || evt.organizer.email : '',
+                        pending,
+                        statusLabel,
                         raw: evt
                     });
                 }
@@ -947,11 +1322,13 @@
                 const duration = Math.max((evt.endDate - evt.startDate) / 3600000, 0.25);
                 const minuteOffset = evt.startDate.getMinutes() / 60;
                 const eventDiv = document.createElement('div');
-                eventDiv.className = `week-event field-${evt.field}`;
+                eventDiv.className = `week-event field-${evt.field}${evt.pending ? ' pending' : ''}`;
+                const pendingLabel = evt.pending ? 'PENDING' : '';
                 const lines = [
                     `${evt.start} - ${evt.end}`,
                     evt.fieldLabel,
                     evt.orgName || evt.calendar || '',
+                    pendingLabel
                 ];
                 if (evt.ageGroup) {
                     lines.push(evt.ageGroup);
