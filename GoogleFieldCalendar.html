@@ -63,7 +63,12 @@
         }
 
         .header-right {
-            align-items: flex-end;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 12px;
         }
 
         .header-left .current-date {
@@ -515,7 +520,13 @@
             font-weight: 700;
             cursor: pointer;
             transition: background 0.2s ease;
-            margin-right: 12px;
+        }
+        .request-button-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 20px;
+            justify-content: flex-start;
         }
         .request-btn:hover {
             background: #1558b0;
@@ -587,9 +598,6 @@
                     <button onclick="switchView(event, 'week')">Week</button>
                 </div>
             </div>
-            <div class="header-right">
-                <button id="requestPracticeButton" class="request-btn">LGS Request Practice</button>
-            </div>
         </div>
         
         <div id="error" class="error" style="display: none;"></div>
@@ -612,6 +620,11 @@
         <!-- Weekly View -->
         <div id="weekView" class="week-view">
             <div id="weekGrid" class="week-grid"></div>
+        </div>
+
+        <div class="request-button-bar">
+            <button id="requestPracticeButton" class="request-btn">LGS Request Practice</button>
+            <button id="travelRequestPracticeButton" class="request-btn" style="background:#34a853;">Travel Request Practice</button>
         </div>
     </div>
 
@@ -679,8 +692,77 @@
                     <textarea id="requestDetails" rows="4" placeholder="Add details, coach contact, opponent or special instructions"></textarea>
                 </div>
                 <div class="request-actions">
-                    <button type="button" onclick="openGoogleCalendarRequest()">Create Draft Calendar Request</button>
+                    <button type="button" onclick="openGoogleCalendarRequest('lgs')">Create Draft Calendar Request</button>
                     <button type="button" onclick="closeRequestModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="travelRequestModal" class="modal-overlay" onclick="if (event.target === this) closeTravelRequestModal()">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="travelRequestModalTitle">
+            <button class="modal-close" aria-label="Close travel request form" onclick="closeTravelRequestModal()">×</button>
+            <h2 id="travelRequestModalTitle" class="modal-title">Travel Request Practice</h2>
+            <div class="modal-description">Choose one of the league-approved weekly practice periods for a travel request. The event title will be formatted as: <strong>Field #: Division TeamName CoachLastName</strong>.</div>
+            <form id="travelPracticeRequestForm">
+                <div class="modal-row">
+                    <label for="travelRequestPeriod"><strong>Period</strong></label>
+                    <select id="travelRequestPeriod" required></select>
+                </div>
+                <div class="modal-row">
+                    <label for="travelRequestDay"><strong>Practice Day</strong></label>
+                    <select id="travelRequestDay" required></select>
+                </div>
+                <div class="modal-row">
+                    <label for="travelRequestTimeSlot"><strong>Time Slot</strong></label>
+                    <select id="travelRequestTimeSlot" required></select>
+                </div>
+                <div class="modal-row">
+                    <label for="travelRequestDate"><strong>Scheduled Date</strong></label>
+                    <input id="travelRequestDate" type="text" readonly />
+                </div>
+                <div id="travelRequestDateHint" class="modal-hint"></div>
+                <div class="modal-row">
+                    <label for="travelRequestDivision"><strong>Division</strong></label>
+                    <input id="travelRequestDivision" type="text" placeholder="e.g. 12U" required />
+                </div>
+                <div class="modal-row">
+                    <label for="travelRequestTeam"><strong>Team Name</strong></label>
+                    <input id="travelRequestTeam" type="text" placeholder="e.g. Da Bears" required />
+                </div>
+                <div class="modal-row">
+                    <label for="travelRequestCoach"><strong>Coach Last Name</strong></label>
+                    <input id="travelRequestCoach" type="text" placeholder="e.g. Ditka" required />
+                </div>
+                <div class="modal-row">
+                    <label for="travelRequestEmail"><strong>Contact Email</strong></label>
+                    <input id="travelRequestEmail" type="email" placeholder="coach@example.com" required />
+                </div>
+                <div class="modal-row">
+                    <label for="travelRequestPhone"><strong>Phone Number</strong></label>
+                    <input id="travelRequestPhone" type="tel" placeholder="(555) 555-1234" required />
+                </div>
+                <div class="modal-row">
+                    <label for="travelRequestField"><strong>Field</strong></label>
+                    <select id="travelRequestField">
+                        <option value="Field A">Field A</option>
+                        <option value="Field B">Field B</option>
+                        <option value="Field C">Field C</option>
+                        <option value="Field D">Field D</option>
+                        <option value="Cage 1">Cage 1</option>
+                        <option value="Cage 2">Cage 2</option>
+                    </select>
+                </div>
+                <div class="modal-row">
+                    <label for="travelRequestDetails"><strong>Notes</strong></label>
+                    <textarea id="travelRequestDetails" rows="4" placeholder="Add details, coach contact, opponent or special instructions"></textarea>
+                </div>
+                <div class="modal-row" style="color:#c62828;font-weight:600;">
+                    Valid insurance must be emailed to girlssoftballlgssc@gmail.com.
+                </div>
+                <div class="request-actions">
+                    <button type="button" onclick="openGoogleCalendarRequest('travel')">Create Draft Calendar Request</button>
+                    <button type="button" onclick="closeTravelRequestModal()">Cancel</button>
                 </div>
             </form>
         </div>
@@ -702,10 +784,6 @@
 
         const REQUEST_ADMIN_EMAILS = 'girlssoftballlgssc@gmail.com';
         const GOOGLE_CALENDAR_TIMEZONE = 'America/New_York';
-        const LEAGUE_PRACTICE_PERIODS = [
-            { id: 'aug23sep20', label: 'Pre-Season: Aug 23 - Sept 20, 2026', start: '2026-08-23', end: '2026-09-20', days: ['monday', 'tuesday', 'thursday'] },
-            { id: 'aug23nov06', label: 'Fall Season: Aug 23 - Nov 6, 2026', start: '2026-08-23', end: '2026-11-06', days: ['wednesday', 'friday', 'saturday', 'sunday'] }
-        ];
         const PRACTICE_DAYS = [
             { id: 'monday', label: 'Monday', weekday: 1 },
             { id: 'tuesday', label: 'Tuesday', weekday: 2 },
@@ -716,10 +794,8 @@
             { id: 'sunday', label: 'Sunday', weekday: 0 }
         ];
         const TIME_SLOTS = [
-            { id: 'preseason_630_730', label: '6:00 PM - 7:30 PM', start: '18:00', end: '19:30', days: ['monday', 'tuesday', 'thursday'] },
-            { id: 'preseason_730_900', label: '7:30 PM - 9:00 PM', start: '19:30', end: '21:00', days: ['monday', 'tuesday', 'thursday'] },
-            { id: 'wedfri_630_730', label: '6:00 PM - 7:30 PM', start: '18:00', end: '19:30', days: ['wednesday', 'friday'] },
-            { id: 'wedfri_730_900', label: '7:30 PM - 9:00 PM', start: '19:30', end: '21:00', days: ['wednesday', 'friday'] },
+            { id: 'weekday_600_730', label: '6:00 PM - 7:30 PM', start: '18:00', end: '19:30', days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] },
+            { id: 'weekday_730_900', label: '7:30 PM - 9:00 PM', start: '19:30', end: '21:00', days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] },
             { id: 'weekend_9_11', label: '9:00 AM - 11:00 AM', start: '09:00', end: '11:00', days: ['saturday', 'sunday'] },
             { id: 'weekend_11_1', label: '11:00 AM - 1:00 PM', start: '11:00', end: '13:00', days: ['saturday', 'sunday'] },
             { id: 'weekend_1_3', label: '1:00 PM - 3:00 PM', start: '13:00', end: '15:00', days: ['saturday', 'sunday'] },
@@ -727,6 +803,17 @@
             { id: 'weekend_5_7', label: '5:00 PM - 7:00 PM', start: '17:00', end: '19:00', days: ['saturday', 'sunday'] },
             { id: 'weekend_7_9', label: '7:00 PM - 9:00 PM', start: '19:00', end: '21:00', days: ['saturday', 'sunday'] }
         ];
+        let LGS_PRACTICE_PERIODS = [];
+        let TRAVEL_PRACTICE_PERIODS = [];
+        const REMOTE_SCHEDULE_CONFIG_URL = 'https://irp.cdn-website.com/c043b761/files/uploaded/practice-schedule-config.json';
+        const LOCAL_SCHEDULE_CONFIG_URL = './practice-schedule-config.json';
+        const FALLBACK_LGS_PERIODS = [
+            { id: 'fall-preseason-2026', label: 'Fall Pre-Season: Aug 23 - Sept 20, 2026', start: '2026-08-23', end: '2026-09-20', days: ['monday', 'tuesday', 'thursday'], slotIds: ['weekday_600_730', 'weekday_730_900'] },
+            { id: 'fall-season-2026', label: 'Fall Season: Sept 21 - Nov 6, 2026', start: '2026-09-21', end: '2026-11-06', days: ['wednesday', 'friday', 'saturday', 'sunday'], slotIds: ['weekday_600_730', 'weekday_730_900', 'weekend_9_11', 'weekend_11_1', 'weekend_1_3', 'weekend_3_5', 'weekend_5_7', 'weekend_7_9'] },
+            { id: 'spring-preseason-2027', label: 'Spring Pre-Season: Jan 15 - Feb 1, 2027', start: '2027-01-15', end: '2027-02-01', days: ['monday', 'tuesday', 'thursday'], slotIds: ['weekday_600_730', 'weekday_730_900'] },
+            { id: 'spring-season-2027', label: 'Spring Season: Feb 2 - Apr 30, 2027', start: '2027-02-02', end: '2027-04-30', days: ['wednesday', 'friday', 'saturday', 'sunday'], slotIds: ['weekday_600_730', 'weekday_730_900', 'weekend_9_11', 'weekend_11_1', 'weekend_1_3', 'weekend_3_5', 'weekend_5_7', 'weekend_7_9'] }
+        ];
+        const FALLBACK_TRAVEL_PERIODS = [];
 
         function onSearchInput(e) {
             const v = e.target.value || '';
@@ -762,8 +849,97 @@
             });
         }
 
+        function getTodayDateString() {
+            const now = new Date();
+            const tzOffset = now.getTimezoneOffset() * 60000;
+            return new Date(now.getTime() - tzOffset).toISOString().split('T')[0];
+        }
+
+        function getPeriodAvailabilityDate(period, requestType = 'lgs') {
+            if (requestType === 'travel') {
+                return period?.travelAvailableFrom ?? period?.availableFrom ?? null;
+            }
+            return period?.availableFrom ?? null;
+        }
+
+        function isPeriodSelectable(period, requestType = 'lgs') {
+            if (!period || period.enabled === false) return false;
+            const availableFrom = getPeriodAvailabilityDate(period, requestType);
+            if (availableFrom === null || availableFrom === undefined || availableFrom === '') return true;
+            return getTodayDateString() >= availableFrom;
+        }
+
+        function isPreseasonPeriod(period) {
+            if (!period) return false;
+            const haystack = `${period.id || ''} ${period.label || ''} ${period.type || ''}`.toLowerCase();
+            return haystack.includes('preseason') || haystack.includes('pre-season');
+        }
+
+        function getPracticePeriods(requestType = 'lgs') {
+            return requestType === 'travel' ? TRAVEL_PRACTICE_PERIODS : LGS_PRACTICE_PERIODS;
+        }
+
+        function getSelectablePeriods(requestType = 'lgs') {
+            const selectablePeriods = getPracticePeriods(requestType).filter(period => isPeriodSelectable(period, requestType));
+            if (requestType === 'travel') {
+                return selectablePeriods.filter(period => !isPreseasonPeriod(period));
+            }
+            return selectablePeriods;
+        }
+
+        async function loadPracticeScheduleConfig() {
+            // Only use the remote config file; do not fall back to local or built-in defaults.
+            const url = REMOTE_SCHEDULE_CONFIG_URL;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Schedule config not found at ${url}`);
+                const config = await response.json();
+                const normalizePeriod = (period) => ({
+                    ...period,
+                    days: Array.isArray(period.days) ? period.days : [],
+                    slotIds: Array.isArray(period.slotIds) ? period.slotIds : []
+                });
+                const lgsPeriods = Array.isArray(config.lgsPeriods)
+                    ? config.lgsPeriods
+                    : Array.isArray(config.periods)
+                        ? config.periods
+                        : [];
+                const travelPeriods = Array.isArray(config.travelPeriods)
+                    ? config.travelPeriods
+                    : Array.isArray(config.lgsPeriods)
+                        ? config.lgsPeriods
+                        : Array.isArray(config.periods)
+                            ? config.periods
+                            : [];
+                LGS_PRACTICE_PERIODS = lgsPeriods
+                    .filter(period => period.enabled !== false)
+                    .map(normalizePeriod);
+                TRAVEL_PRACTICE_PERIODS = travelPeriods
+                    .filter(period => period.enabled !== false)
+                    .map(normalizePeriod);
+                // Clear any previous error message
+                const errEl = document.getElementById('error');
+                if (errEl) {
+                    errEl.style.display = 'none';
+                    errEl.textContent = '';
+                }
+                return;
+            } catch (error) {
+                console.error(`Unable to load remote schedule config from ${url}:`, error);
+                // Do NOT use local or fallback periods. Instead, surface an error to the user and leave period lists empty.
+                LGS_PRACTICE_PERIODS = [];
+                TRAVEL_PRACTICE_PERIODS = [];
+                const errEl = document.getElementById('error');
+                if (errEl) {
+                    errEl.style.display = 'block';
+                    errEl.textContent = 'Error: unable to load practice schedule configuration. Please ensure the remote schedule JSON is available.';
+                }
+                return;
+            }
+        }
+
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             updateDateDisplay();
             updateFilterButtons();
             const sb = document.getElementById('searchBox');
@@ -800,7 +976,13 @@
             if (requestBtn) {
                 requestBtn.addEventListener('click', openRequestModal);
             }
+            const travelRequestBtn = document.getElementById('travelRequestPracticeButton');
+            if (travelRequestBtn) {
+                travelRequestBtn.addEventListener('click', openTravelRequestModal);
+            }
+            await loadPracticeScheduleConfig();
             buildPracticeRequestForm();
+            buildTravelPracticeRequestForm();
             fetchCalendarEvents();
         });
 
@@ -808,10 +990,25 @@
             const periodSelect = document.getElementById('requestPeriod');
             const daySelect = document.getElementById('requestDay');
             const timeSelect = document.getElementById('requestTimeSlot');
-            if (!periodSelect || !daySelect || !timeSelect) return;
+            const dateInput = document.getElementById('requestDate');
+            const hint = document.getElementById('requestDateHint');
+            if (!periodSelect || !daySelect || !timeSelect || !dateInput || !hint) return;
 
+            const selectablePeriods = getSelectablePeriods('lgs');
             periodSelect.innerHTML = '';
-            LEAGUE_PRACTICE_PERIODS.forEach(period => {
+            if (!selectablePeriods.length) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No practice periods are currently available';
+                periodSelect.appendChild(option);
+                daySelect.innerHTML = '';
+                timeSelect.innerHTML = '';
+                dateInput.value = '';
+                hint.textContent = 'A new practice period will become available once its configured availability date arrives.';
+                return;
+            }
+
+            selectablePeriods.forEach(period => {
                 const option = document.createElement('option');
                 option.value = period.id;
                 option.textContent = period.label;
@@ -819,7 +1016,7 @@
             });
 
             function populatePracticeDays(periodId) {
-                const period = LEAGUE_PRACTICE_PERIODS.find(item => item.id === periodId) || LEAGUE_PRACTICE_PERIODS[0];
+                const period = selectablePeriods.find(item => item.id === periodId) || selectablePeriods[0];
                 daySelect.innerHTML = '';
                 PRACTICE_DAYS.filter(day => period.days.includes(day.id)).forEach(day => {
                     const option = document.createElement('option');
@@ -833,7 +1030,13 @@
 
             function populateTimeSlots(selectedDayId) {
                 timeSelect.innerHTML = '';
-                const availableSlots = TIME_SLOTS.filter(slot => slot.days.includes(selectedDayId));
+                const period = selectablePeriods.find(item => item.id === periodSelect.value) || selectablePeriods[0];
+                const slotIds = Array.isArray(period?.slotIds) && period.slotIds.length ? period.slotIds : [];
+                const availableSlots = TIME_SLOTS.filter(slot => {
+                    const allowedByDay = slot.days.includes(selectedDayId);
+                    const allowedByPeriod = slotIds.length ? slotIds.includes(slot.id) : true;
+                    return allowedByDay && allowedByPeriod;
+                });
                 availableSlots.forEach(slot => {
                     const option = document.createElement('option');
                     option.value = slot.id;
@@ -856,10 +1059,89 @@
             });
             timeSelect.addEventListener('change', updatePracticeRequestDetails);
 
-            periodSelect.value = LEAGUE_PRACTICE_PERIODS[0]?.id || '';
+            periodSelect.value = selectablePeriods[0]?.id || '';
             populatePracticeDays(periodSelect.value);
             populateTimeSlots(daySelect.value);
             updatePracticeRequestDetails();
+        }
+
+        function buildTravelPracticeRequestForm() {
+            const periodSelect = document.getElementById('travelRequestPeriod');
+            const daySelect = document.getElementById('travelRequestDay');
+            const timeSelect = document.getElementById('travelRequestTimeSlot');
+            const dateInput = document.getElementById('travelRequestDate');
+            const hint = document.getElementById('travelRequestDateHint');
+            if (!periodSelect || !daySelect || !timeSelect || !dateInput || !hint) return;
+
+            const selectablePeriods = getSelectablePeriods('travel');
+            periodSelect.innerHTML = '';
+            if (!selectablePeriods.length) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No travel practice periods are currently available';
+                periodSelect.appendChild(option);
+                daySelect.innerHTML = '';
+                timeSelect.innerHTML = '';
+                dateInput.value = '';
+                hint.textContent = 'A new travel practice period will become available once its configured availability date arrives.';
+                return;
+            }
+
+            selectablePeriods.forEach(period => {
+                const option = document.createElement('option');
+                option.value = period.id;
+                option.textContent = period.label;
+                periodSelect.appendChild(option);
+            });
+
+            function populatePracticeDays(periodId) {
+                const period = selectablePeriods.find(item => item.id === periodId) || selectablePeriods[0];
+                daySelect.innerHTML = '';
+                PRACTICE_DAYS.filter(day => period.days.includes(day.id)).forEach(day => {
+                    const option = document.createElement('option');
+                    option.value = day.id;
+                    option.textContent = day.label;
+                    daySelect.appendChild(option);
+                });
+                const firstDay = daySelect.querySelector('option');
+                daySelect.value = firstDay ? firstDay.value : '';
+            }
+
+            function populateTimeSlots(selectedDayId) {
+                timeSelect.innerHTML = '';
+                const period = selectablePeriods.find(item => item.id === periodSelect.value) || selectablePeriods[0];
+                const slotIds = Array.isArray(period?.slotIds) && period.slotIds.length ? period.slotIds : [];
+                const availableSlots = TIME_SLOTS.filter(slot => {
+                    const allowedByDay = slot.days.includes(selectedDayId);
+                    const allowedByPeriod = slotIds.length ? slotIds.includes(slot.id) : true;
+                    return allowedByDay && allowedByPeriod;
+                });
+                availableSlots.forEach(slot => {
+                    const option = document.createElement('option');
+                    option.value = slot.id;
+                    option.textContent = slot.label;
+                    timeSelect.appendChild(option);
+                });
+                if (availableSlots.length) {
+                    timeSelect.value = availableSlots[0].id;
+                }
+            }
+
+            periodSelect.addEventListener('change', () => {
+                populatePracticeDays(periodSelect.value);
+                populateTimeSlots(daySelect.value);
+                updateTravelPracticeRequestDetails();
+            });
+            daySelect.addEventListener('change', () => {
+                populateTimeSlots(daySelect.value);
+                updateTravelPracticeRequestDetails();
+            });
+            timeSelect.addEventListener('change', updateTravelPracticeRequestDetails);
+
+            periodSelect.value = selectablePeriods[0]?.id || '';
+            populatePracticeDays(periodSelect.value);
+            populateTimeSlots(daySelect.value);
+            updateTravelPracticeRequestDetails();
         }
 
         function updatePracticeRequestDetails() {
@@ -869,7 +1151,39 @@
             const hint = document.getElementById('requestDateHint');
             if (!periodSelect || !daySelect || !dateInput || !hint) return;
 
-            const period = LEAGUE_PRACTICE_PERIODS.find(item => item.id === periodSelect.value) || LEAGUE_PRACTICE_PERIODS[0];
+            const selectablePeriods = getSelectablePeriods('lgs');
+            const period = selectablePeriods.find(item => item.id === periodSelect.value) || selectablePeriods[0];
+            if (!period) {
+                dateInput.value = '';
+                hint.textContent = 'No practice periods are currently available.';
+                return;
+            }
+            const day = PRACTICE_DAYS.find(item => item.id === daySelect.value) || PRACTICE_DAYS[0];
+            const scheduledDate = getPracticeDateForWeekday(period, day.weekday);
+
+            if (scheduledDate) {
+                dateInput.value = scheduledDate;
+                hint.textContent = `This event will recur weekly on ${day.label} through ${period.end}.`;
+            } else {
+                dateInput.value = '';
+                hint.textContent = `No ${day.label} exists within the selected period.`;
+            }
+        }
+
+        function updateTravelPracticeRequestDetails() {
+            const periodSelect = document.getElementById('travelRequestPeriod');
+            const daySelect = document.getElementById('travelRequestDay');
+            const dateInput = document.getElementById('travelRequestDate');
+            const hint = document.getElementById('travelRequestDateHint');
+            if (!periodSelect || !daySelect || !dateInput || !hint) return;
+
+            const selectablePeriods = getSelectablePeriods('travel');
+            const period = selectablePeriods.find(item => item.id === periodSelect.value) || selectablePeriods[0];
+            if (!period) {
+                dateInput.value = '';
+                hint.textContent = 'No travel practice periods are currently available.';
+                return;
+            }
             const day = PRACTICE_DAYS.find(item => item.id === daySelect.value) || PRACTICE_DAYS[0];
             const scheduledDate = getPracticeDateForWeekday(period, day.weekday);
 
@@ -907,21 +1221,39 @@
             modal.classList.remove('active');
         }
 
-        function collectPracticeRequestData() {
-            const periodId = document.getElementById('requestPeriod')?.value;
-            const dayId = document.getElementById('requestDay')?.value;
-            const slotId = document.getElementById('requestTimeSlot')?.value;
-            const requestDate = document.getElementById('requestDate')?.value;
-            const requestDivision = document.getElementById('requestDivision')?.value.trim();
-            const requestTeam = document.getElementById('requestTeam')?.value.trim();
-            const requestCoach = document.getElementById('requestCoach')?.value.trim();
-            const requestField = document.getElementById('requestField')?.value;
-            const requestDetails = document.getElementById('requestDetails')?.value.trim();
-            const period = LEAGUE_PRACTICE_PERIODS.find(item => item.id === periodId);
+        function openTravelRequestModal() {
+            const modal = document.getElementById('travelRequestModal');
+            if (!modal) return;
+            modal.classList.add('active');
+        }
+
+        function closeTravelRequestModal() {
+            const modal = document.getElementById('travelRequestModal');
+            if (!modal) return;
+            modal.classList.remove('active');
+        }
+
+        function collectPracticeRequestData(requestType = 'lgs') {
+            const periodId = document.getElementById(requestType === 'travel' ? 'travelRequestPeriod' : 'requestPeriod')?.value;
+            const dayId = document.getElementById(requestType === 'travel' ? 'travelRequestDay' : 'requestDay')?.value;
+            const slotId = document.getElementById(requestType === 'travel' ? 'travelRequestTimeSlot' : 'requestTimeSlot')?.value;
+            const requestDate = document.getElementById(requestType === 'travel' ? 'travelRequestDate' : 'requestDate')?.value;
+            const requestDivision = document.getElementById(requestType === 'travel' ? 'travelRequestDivision' : 'requestDivision')?.value.trim();
+            const requestTeam = document.getElementById(requestType === 'travel' ? 'travelRequestTeam' : 'requestTeam')?.value.trim();
+            const requestCoach = document.getElementById(requestType === 'travel' ? 'travelRequestCoach' : 'requestCoach')?.value.trim();
+            const requestField = document.getElementById(requestType === 'travel' ? 'travelRequestField' : 'requestField')?.value;
+            const requestDetails = document.getElementById(requestType === 'travel' ? 'travelRequestDetails' : 'requestDetails')?.value.trim();
+            const requestEmail = document.getElementById('travelRequestEmail')?.value.trim();
+            const requestPhone = document.getElementById('travelRequestPhone')?.value.trim();
+            const period = getPracticePeriods(requestType).find(item => item.id === periodId);
             const day = PRACTICE_DAYS.find(item => item.id === dayId);
             const slot = TIME_SLOTS.find(item => item.id === slotId);
             if (!period || !day || !slot || !requestDate || !requestDivision || !requestTeam || !requestCoach) {
                 alert('Please complete the request period, practice day, time slot, division, team name, and coach fields.');
+                return null;
+            }
+            if (requestType === 'travel' && (!requestEmail || !requestPhone)) {
+                alert('Please complete the contact email and phone number fields.');
                 return null;
             }
             return {
@@ -935,14 +1267,20 @@
                 requestField,
                 requestDetails,
                 requestDay: day.label,
-                timeLabel: slot.label
+                timeLabel: slot.label,
+                requestEmail,
+                requestPhone
             };
         }
 
-        function openGoogleCalendarRequest() {
-            const data = collectPracticeRequestData();
+        function openGoogleCalendarRequest(requestType = 'lgs') {
+            const data = collectPracticeRequestData(requestType);
             if (!data) return;
-            closeRequestModal();
+            if (requestType === 'travel') {
+                closeTravelRequestModal();
+            } else {
+                closeRequestModal();
+            }
             const startDateTime = formatGoogleCalendarDateTime(data.requestDate, data.requestStartTime);
             const endDateTime = formatGoogleCalendarDateTime(data.requestDate, data.requestEndTime);
             const details = [
@@ -952,9 +1290,13 @@
                 `Requested location: ${data.requestField}`,
                 '',
                 `Coach: ${data.requestCoach}`,
+                `Contact email: ${data.requestEmail || 'Not provided'}`,
+                `Contact phone: ${data.requestPhone || 'Not provided'}`,
                 `Notes: ${data.requestDetails || 'None'}`,
                 '',
-                'Submit this event for approval from the calendar admins.'
+                requestType === 'travel'
+                    ? 'Valid insurance must be emailed to girlssoftballlgssc@gmail.com.'
+                    : 'Submit this event for approval from the calendar admins.'
             ].join('\n');
             const byDayMap = { Monday: 'MO', Tuesday: 'TU', Wednesday: 'WE', Thursday: 'TH', Friday: 'FR', Saturday: 'SA', Sunday: 'SU' };
             const untilDate = data.period.end.replace(/-/g, '');
