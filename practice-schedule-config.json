@@ -25,7 +25,7 @@
       "end": "2027-02-01",
       "days": ["monday", "tuesday", "thursday"],
       "slotIds": ["weekday_600_730", "weekday_730_900"],
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "spring-season-2027",
@@ -34,7 +34,7 @@
       "end": "2027-04-30",
       "days": ["wednesday", "friday", "saturday", "sunday"],
       "slotIds": ["weekday_600_730", "weekday_730_900", "weekend_9_11", "weekend_11_1", "weekend_1_3", "weekend_3_5", "weekend_5_7", "weekend_7_9"],
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "summer-break-2026",
