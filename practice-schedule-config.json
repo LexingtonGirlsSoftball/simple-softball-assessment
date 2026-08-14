@@ -11,11 +11,11 @@
     },
     {
       "id": "fall-season-2026",
-      "label": "Fall Season: Sept 21 - Nov 6, 2026",
-      "start": "2026-09-21",
+      "label": "Fall Season: Aug 23 - Nov 6, 2026",
+      "start": "2026-08-23",
       "end": "2026-11-06",
       "days": ["wednesday", "friday", "saturday", "sunday"],
-      "slotIds": ["weekday_600_730", "weekday_730_900", "weekend_9_11", "weekend_11_1", "weekend_1_3", "weekend_3_5", "weekend_5_7", "weekend_7_9"],
+      "slotIds": ["weekend_9_11", "weekend_11_1", "weekend_1_3", "weekend_3_5", "weekend_5_7", "weekend_7_9"],
       "enabled": true
     },
     {
@@ -29,8 +29,8 @@
     },
     {
       "id": "spring-season-2027",
-      "label": "Spring Season: Feb 2 - Apr 30, 2027",
-      "start": "2027-02-02",
+      "label": "Spring Season: Jan 15 - Apr 30, 2027",
+      "start": "2027-01-15",
       "end": "2027-04-30",
       "days": ["wednesday", "friday", "saturday", "sunday"],
       "slotIds": ["weekday_600_730", "weekday_730_900", "weekend_9_11", "weekend_11_1", "weekend_1_3", "weekend_3_5", "weekend_5_7", "weekend_7_9"],

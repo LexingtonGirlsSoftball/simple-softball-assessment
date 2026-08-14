@@ -227,6 +227,9 @@
         .filter-btn[data-filter="b"] { background: #fdecea; color: #ea4335; border-color: #f8d0cc; }
         .filter-btn[data-filter="c"] { background: #eaf7ee; color: #34a853; border-color: #d7efd7; }
         .filter-btn[data-filter="d"] { background: #fff7e6; color: #fbbc04; border-color: #fde7c7; }
+        .filter-btn[data-filter="6ua"] { background: #eef2f4; color: #5f6368; border-color: #dfe3e6; }
+        .filter-btn[data-filter="6ub"] { background: #f3e8f7; color: #7b1fa2; border-color: #e7d4f1; }
+        .filter-btn[data-filter="6uc"] { background: #e7f7f5; color: #009688; border-color: #ccebe7; }
         .filter-btn[data-filter="cage1"] { background: #f6ecfb; color: #8e24aa; border-color: #eddff4; }
         .filter-btn[data-filter="cage2"] { background: #fff4ea; color: #ff6d00; border-color: #ffe0c9; }
 
@@ -239,6 +242,9 @@
         .filter-btn[data-filter="b"].active { background: #ea4335; border-color: #c6281f; color: #fff; }
         .filter-btn[data-filter="c"].active { background: #34a853; border-color: #2a8a44; color: #fff; }
         .filter-btn[data-filter="d"].active { background: #fbbc04; border-color: #e0a800; color: #202124; }
+        .filter-btn[data-filter="6ua"].active { background: #5f6368; border-color: #424242; color: #fff; }
+        .filter-btn[data-filter="6ub"].active { background: #7b1fa2; border-color: #4a148c; color: #fff; }
+        .filter-btn[data-filter="6uc"].active { background: #009688; border-color: #00695c; color: #fff; }
         .filter-btn[data-filter="cage1"].active { background: #8e24aa; border-color: #6a1b9a; color: #fff; }
         .filter-btn[data-filter="cage2"].active { background: #ff6d00; border-color: #e65100; color: #fff; }
         
@@ -338,6 +344,9 @@
         .event.field-b { background: #ea4335; }
         .event.field-c { background: #34a853; }
         .event.field-d { background: #fbbc04; color: #202124; }
+        .event.field-6ua { background: #5f6368; }
+        .event.field-6ub { background: #7b1fa2; }
+        .event.field-6uc { background: #009688; }
         .event.field-cage1 { background: #8e24aa; }
         .event.field-cage2 { background: #ff6d00; }
         .event.pending {
@@ -412,6 +421,9 @@
         .week-event.field-b { background: #ea4335; border-left-color: #ea4335; }
         .week-event.field-c { background: #34a853; border-left-color: #34a853; }
         .week-event.field-d { background: #fbbc04; color: #202124; border-left-color: #fbbc04; }
+        .week-event.field-6ua { background: #5f6368; border-left-color: #424242; }
+        .week-event.field-6ub { background: #7b1fa2; border-left-color: #4a148c; }
+        .week-event.field-6uc { background: #009688; border-left-color: #00695c; }
         .week-event.field-cage1 { background: #8e24aa; border-left-color: #6a1b9a; }
         .week-event.field-cage2 { background: #ff6d00; border-left-color: #e65100; }
         .week-event.pending {
@@ -588,6 +600,9 @@
                     <button class="filter-btn" data-filter="b" onclick="toggleFilter('b')">Field B</button>
                     <button class="filter-btn" data-filter="c" onclick="toggleFilter('c')">Field C</button>
                     <button class="filter-btn" data-filter="d" onclick="toggleFilter('d')">Field D</button>
+                    <button class="filter-btn" data-filter="6ua" onclick="toggleFilter('6ua')">6u-A</button>
+                    <button class="filter-btn" data-filter="6ub" onclick="toggleFilter('6ub')">6u-B</button>
+                    <button class="filter-btn" data-filter="6uc" onclick="toggleFilter('6uc')">6u-C</button>
                     <button class="filter-btn" data-filter="cage1" onclick="toggleFilter('cage1')">Cage 1</button>
                     <button class="filter-btn" data-filter="cage2" onclick="toggleFilter('cage2')">Cage 2</button>
                 </div>
@@ -683,6 +698,9 @@
                         <option value="Field B">Field B</option>
                         <option value="Field C">Field C</option>
                         <option value="Field D">Field D</option>
+                        <option value="6u-A">6u-A</option>
+                        <option value="6u-B">6u-B</option>
+                        <option value="6u-C">6u-C</option>
                         <option value="Cage 1">Cage 1</option>
                         <option value="Cage 2">Cage 2</option>
                     </select>
@@ -749,6 +767,9 @@
                         <option value="Field B">Field B</option>
                         <option value="Field C">Field C</option>
                         <option value="Field D">Field D</option>
+                        <option value="6u-A">6u-A</option>
+                        <option value="6u-B">6u-B</option>
+                        <option value="6u-C">6u-C</option>
                         <option value="Cage 1">Cage 1</option>
                         <option value="Cage 2">Cage 2</option>
                     </select>
@@ -805,13 +826,13 @@
         ];
         let LGS_PRACTICE_PERIODS = [];
         let TRAVEL_PRACTICE_PERIODS = [];
-        const REMOTE_SCHEDULE_CONFIG_URL = 'https://irp.cdn-website.com/c043b761/files/uploaded/practice-schedule-config.json';
+        const REMOTE_SCHEDULE_CONFIG_URL = 'https://raw.githubusercontent.com/LexingtonGirlsSoftball/simple-softball-assessment/main/practice-schedule-config.json';
         const LOCAL_SCHEDULE_CONFIG_URL = './practice-schedule-config.json';
         const FALLBACK_LGS_PERIODS = [
             { id: 'fall-preseason-2026', label: 'Fall Pre-Season: Aug 23 - Sept 20, 2026', start: '2026-08-23', end: '2026-09-20', days: ['monday', 'tuesday', 'thursday'], slotIds: ['weekday_600_730', 'weekday_730_900'] },
-            { id: 'fall-season-2026', label: 'Fall Season: Sept 21 - Nov 6, 2026', start: '2026-09-21', end: '2026-11-06', days: ['wednesday', 'friday', 'saturday', 'sunday'], slotIds: ['weekday_600_730', 'weekday_730_900', 'weekend_9_11', 'weekend_11_1', 'weekend_1_3', 'weekend_3_5', 'weekend_5_7', 'weekend_7_9'] },
+            { id: 'fall-season-2026', label: 'Fall Season: Aug 23 - Nov 6, 2026', start: '2026-08-23', end: '2026-11-06', days: ['wednesday', 'friday', 'saturday', 'sunday'], slotIds: ['weekend_9_11', 'weekend_11_1', 'weekend_1_3', 'weekend_3_5', 'weekend_5_7', 'weekend_7_9'] },
             { id: 'spring-preseason-2027', label: 'Spring Pre-Season: Jan 15 - Feb 1, 2027', start: '2027-01-15', end: '2027-02-01', days: ['monday', 'tuesday', 'thursday'], slotIds: ['weekday_600_730', 'weekday_730_900'] },
-            { id: 'spring-season-2027', label: 'Spring Season: Feb 2 - Apr 30, 2027', start: '2027-02-02', end: '2027-04-30', days: ['wednesday', 'friday', 'saturday', 'sunday'], slotIds: ['weekday_600_730', 'weekday_730_900', 'weekend_9_11', 'weekend_11_1', 'weekend_1_3', 'weekend_3_5', 'weekend_5_7', 'weekend_7_9'] }
+            { id: 'spring-season-2027', label: 'Spring Season: Jan 15 - Apr 30, 2027', start: '2027-01-15', end: '2027-04-30', days: ['wednesday', 'friday', 'saturday', 'sunday'], slotIds: ['weekend_9_11', 'weekend_11_1', 'weekend_1_3', 'weekend_3_5', 'weekend_5_7', 'weekend_7_9'] }
         ];
         const FALLBACK_TRAVEL_PERIODS = [];
 
@@ -1540,7 +1561,7 @@
                     if (upper.includes('CAGE 2') || upper.includes('CAGE2')) category = 'cage2';
                     // Apply single-selection filter — but if a text search is active, ignore the button filter
                     if ((!searchTokens || !searchTokens.length) && activeFilter !== 'all' && activeFilter !== category) return;
-                    const fieldLabel = category === 'cage1' ? 'Cage 1' : category === 'cage2' ? 'Cage 2' : `Field ${category.toUpperCase()}`;
+                    const fieldLabel = getFieldLabel(category);
                     const { orgName, ageGroup } = parseEventSummary(evt.summary);
                     const hasUnacceptedAttendee = Array.isArray(evt.attendees) && evt.attendees.some(att => att.email !== (evt.organizer?.email || '') && att.responseStatus && att.responseStatus !== 'accepted');
                     const pending = (evt.status && evt.status !== 'confirmed') || hasUnacceptedAttendee;
@@ -1585,6 +1606,15 @@
             return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
         }
 
+        function getFieldLabel(category) {
+            if (category === 'cage1') return 'Cage 1';
+            if (category === 'cage2') return 'Cage 2';
+            if (category === '6ua') return '6u-A';
+            if (category === '6ub') return '6u-B';
+            if (category === '6uc') return '6u-C';
+            return `Field ${String(category || 'A').toUpperCase()}`;
+        }
+
         function determineField(title) {
             if (!title) return 'a';
             const upper = title.toUpperCase();
@@ -1592,6 +1622,11 @@
             if (upper.includes('FIELD B') || upper.includes('FIELD B:') || upper.includes('FIELD B ')) return 'b';
             if (upper.includes('FIELD C') || upper.includes('FIELD C:') || upper.includes('FIELD C ')) return 'c';
             if (upper.includes('FIELD D') || upper.includes('FIELD D:') || upper.includes('FIELD D ')) return 'd';
+            if (upper.includes('6U-A') || upper.includes('6u-A') || upper.includes('6U A') || upper.includes('6u A') || upper.includes('6U-A:') || upper.includes('6u-A:') || upper.includes('FIELD 6U-A') || upper.includes('FIELD 6u-A')) return '6ua';
+            if (upper.includes('6U-B') || upper.includes('6u-B') || upper.includes('6U B') || upper.includes('6u B') || upper.includes('6U-B:') || upper.includes('6u-B:') || upper.includes('FIELD 6U-B') || upper.includes('FIELD 6u-B')) return '6ub';
+            if (upper.includes('6U-C') || upper.includes('6u-C') || upper.includes('6U C') || upper.includes('6u C') || upper.includes('6U-C:') || upper.includes('6u-C:') || upper.includes('FIELD 6U-C') || upper.includes('FIELD 6u-C')) return '6uc';
+            if (upper.includes('CAGE 1') || upper.includes('CAGE1')) return 'cage1';
+            if (upper.includes('CAGE 2') || upper.includes('CAGE2')) return 'cage2';
             return 'a';
         }
 
@@ -1600,8 +1635,9 @@
             const ageMatch = text.match(/\b\d{1,2}U\b/i);
             const ageGroup = ageMatch ? ageMatch[0].toUpperCase() : '';
             const orgName = text
-                .replace(/^(FIELD\s*[A-D]|CAGE\s*1|CAGE\s*2)\s*[:\-–]?\s*/i, '')
+                .replace(/^(FIELD\s*[A-D]|FIELD\s*6u[- ]?[abc]|CAGE\s*1|CAGE\s*2|6u[- ]?[abc])\s*[:\-–]?\s*/i, '')
                 .replace(/\b\d{1,2}U\b/i, '')
+                .replace(/\b6u[- ]?[abc]\b/gi, '')
                 .replace(/[:\-–]/g, ' ')
                 .replace(/\s{2,}/g, ' ')
                 .trim();
