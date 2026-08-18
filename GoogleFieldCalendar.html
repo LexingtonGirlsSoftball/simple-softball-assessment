@@ -566,6 +566,29 @@
         .request-actions button:hover {
             opacity: 0.95;
         }
+        .request-actions button:disabled {
+            background: #dcdcdc;
+            color: #8a8a8a;
+            cursor: not-allowed;
+            opacity: 1;
+        }
+        .availability-message {
+            margin-left: 0;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .availability-message.blocked {
+            background: #fce8e6;
+            color: #a50e0e;
+            border: 1px solid #d93025;
+        }
+        .availability-message.warning {
+            background: #fef7e0;
+            color: #7a5b00;
+            border: 1px solid #f9ab00;
+        }
         .modal-content form {
             margin-top: 12px;
         }
@@ -705,12 +728,13 @@
                         <option value="Cage 2">Cage 2</option>
                     </select>
                 </div>
+                <div id="requestAvailabilityMessage" class="availability-message" style="display:none;"></div>
                 <div class="modal-row">
                     <label for="requestDetails"><strong>Notes</strong></label>
                     <textarea id="requestDetails" rows="4" placeholder="Add details, coach contact, opponent or special instructions"></textarea>
                 </div>
                 <div class="request-actions">
-                    <button type="button" onclick="openGoogleCalendarRequest('lgs')">Create Draft Calendar Request</button>
+                    <button id="requestSubmitBtn" type="button" onclick="openGoogleCalendarRequest('lgs')">Create Draft Calendar Request</button>
                     <button type="button" onclick="closeRequestModal()">Cancel</button>
                 </div>
             </form>
@@ -778,11 +802,12 @@
                     <label for="travelRequestDetails"><strong>Notes</strong></label>
                     <textarea id="travelRequestDetails" rows="4" placeholder="Add details, coach contact, opponent or special instructions"></textarea>
                 </div>
+                <div id="travelRequestAvailabilityMessage" class="availability-message" style="display:none;"></div>
                 <div class="modal-row" style="color:#c62828;font-weight:600;">
                     Valid insurance must be emailed to girlssoftballlgssc@gmail.com.
                 </div>
                 <div class="request-actions">
-                    <button type="button" onclick="openGoogleCalendarRequest('travel')">Create Draft Calendar Request</button>
+                    <button id="travelRequestSubmitBtn" type="button" onclick="openGoogleCalendarRequest('travel')">Create Draft Calendar Request</button>
                     <button type="button" onclick="closeTravelRequestModal()">Cancel</button>
                 </div>
             </form>
@@ -826,6 +851,9 @@
         ];
         let LGS_PRACTICE_PERIODS = [];
         let TRAVEL_PRACTICE_PERIODS = [];
+        let lgsConflictState = 'clear';
+        let travelConflictState = 'clear';
+        let conflictCheckToken = 0;
         const REMOTE_SCHEDULE_CONFIG_URL = 'https://raw.githubusercontent.com/LexingtonGirlsSoftball/simple-softball-assessment/main/practice-schedule-config.json';
         const LOCAL_SCHEDULE_CONFIG_URL = './practice-schedule-config.json';
         const FALLBACK_LGS_PERIODS = [
@@ -1079,6 +1107,8 @@
                 updatePracticeRequestDetails();
             });
             timeSelect.addEventListener('change', updatePracticeRequestDetails);
+            const fieldSelect = document.getElementById('requestField');
+            if (fieldSelect) fieldSelect.addEventListener('change', () => checkFieldConflicts('lgs'));
 
             periodSelect.value = selectablePeriods[0]?.id || '';
             populatePracticeDays(periodSelect.value);
@@ -1158,6 +1188,8 @@
                 updateTravelPracticeRequestDetails();
             });
             timeSelect.addEventListener('change', updateTravelPracticeRequestDetails);
+            const fieldSelect = document.getElementById('travelRequestField');
+            if (fieldSelect) fieldSelect.addEventListener('change', () => checkFieldConflicts('travel'));
 
             periodSelect.value = selectablePeriods[0]?.id || '';
             populatePracticeDays(periodSelect.value);
@@ -1189,6 +1221,7 @@
                 dateInput.value = '';
                 hint.textContent = `No ${day.label} exists within the selected period.`;
             }
+            checkFieldConflicts('lgs');
         }
 
         function updateTravelPracticeRequestDetails() {
@@ -1215,6 +1248,7 @@
                 dateInput.value = '';
                 hint.textContent = `No ${day.label} exists within the selected period.`;
             }
+            checkFieldConflicts('travel');
         }
 
         function getPracticeDateForWeekday(period, weekday) {
@@ -1294,7 +1328,129 @@
             };
         }
 
+        function fieldValueToCategory(value) {
+            const FIELD_VALUE_CATEGORIES = {
+                'Field A': 'a', 'Field B': 'b', 'Field C': 'c', 'Field D': 'd',
+                '6u-A': '6ua', '6u-B': '6ub', '6u-C': '6uc',
+                'Cage 1': 'cage1', 'Cage 2': 'cage2'
+            };
+            return FIELD_VALUE_CATEGORIES[value] || 'a';
+        }
+
+        function categorizeEvent(evt) {
+            const upper = (evt.summary || '').toUpperCase();
+            let category = determineField(evt.summary);
+            if (upper.includes('CAGE 1') || upper.includes('CAGE1')) category = 'cage1';
+            if (upper.includes('CAGE 2') || upper.includes('CAGE2')) category = 'cage2';
+            return category;
+        }
+
+        function isEventPending(evt) {
+            const hasUnacceptedAttendee = Array.isArray(evt.attendees) && evt.attendees.some(att => att.email !== (evt.organizer?.email || '') && att.responseStatus && att.responseStatus !== 'accepted');
+            return (evt.status && evt.status !== 'confirmed') || hasUnacceptedAttendee;
+        }
+
+        function timeRangesOverlap(slot, eventStart, eventEnd) {
+            const [slotStartH, slotStartM] = slot.start.split(':').map(Number);
+            const [slotEndH, slotEndM] = slot.end.split(':').map(Number);
+            const slotStartMinutes = slotStartH * 60 + slotStartM;
+            const slotEndMinutes = slotEndH * 60 + slotEndM;
+            const eventStartMinutes = eventStart.getHours() * 60 + eventStart.getMinutes();
+            const eventEndMinutes = eventEnd.getHours() * 60 + eventEnd.getMinutes();
+            return eventStartMinutes < slotEndMinutes && eventEndMinutes > slotStartMinutes;
+        }
+
+        async function fetchEventsForRange(startDate, endDate) {
+            const timeMin = new Date(`${startDate}T00:00:00`).toISOString();
+            const timeMax = new Date(`${endDate}T23:59:59`).toISOString();
+            const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to fetch calendar events for conflict check');
+            const data = await response.json();
+            return data.items || [];
+        }
+
+        // Checks the selected period/day/time slot/field against existing calendar events.
+        // Blocks the request if a confirmed event conflicts; warns if only a pending request conflicts.
+        async function checkFieldConflicts(requestType) {
+            const ids = requestType === 'travel'
+                ? { period: 'travelRequestPeriod', day: 'travelRequestDay', slot: 'travelRequestTimeSlot', field: 'travelRequestField', message: 'travelRequestAvailabilityMessage', button: 'travelRequestSubmitBtn' }
+                : { period: 'requestPeriod', day: 'requestDay', slot: 'requestTimeSlot', field: 'requestField', message: 'requestAvailabilityMessage', button: 'requestSubmitBtn' };
+
+            const messageEl = document.getElementById(ids.message);
+            const buttonEl = document.getElementById(ids.button);
+
+            const setState = (state, text) => {
+                if (requestType === 'travel') travelConflictState = state; else lgsConflictState = state;
+                if (buttonEl) buttonEl.disabled = state === 'blocked';
+                if (!messageEl) return;
+                messageEl.classList.remove('blocked', 'warning');
+                if (state === 'clear' || !text) {
+                    messageEl.style.display = 'none';
+                    messageEl.textContent = '';
+                    return;
+                }
+                messageEl.classList.add(state);
+                messageEl.textContent = text;
+                messageEl.style.display = 'block';
+            };
+
+            const periodId = document.getElementById(ids.period)?.value;
+            const dayId = document.getElementById(ids.day)?.value;
+            const slotId = document.getElementById(ids.slot)?.value;
+            const fieldValue = document.getElementById(ids.field)?.value;
+
+            const period = getPracticePeriods(requestType).find(item => item.id === periodId);
+            const day = PRACTICE_DAYS.find(item => item.id === dayId);
+            const slot = TIME_SLOTS.find(item => item.id === slotId);
+
+            if (!period || !day || !slot || !fieldValue) {
+                setState('clear', '');
+                return;
+            }
+
+            const category = fieldValueToCategory(fieldValue);
+            const token = ++conflictCheckToken;
+            try {
+                const items = await fetchEventsForRange(period.start, period.end);
+                if (token !== conflictCheckToken) return; // superseded by a newer check
+
+                let hasConfirmedConflict = false;
+                let hasPendingConflict = false;
+                items.forEach(evt => {
+                    if (!evt.start) return;
+                    const eventStart = new Date(evt.start.dateTime || evt.start.date);
+                    if (eventStart.getDay() !== day.weekday) return;
+                    if (categorizeEvent(evt) !== category) return;
+                    const eventEnd = evt.end ? new Date(evt.end.dateTime || evt.end.date) : eventStart;
+                    if (!timeRangesOverlap(slot, eventStart, eventEnd)) return;
+                    if (isEventPending(evt)) {
+                        hasPendingConflict = true;
+                    } else {
+                        hasConfirmedConflict = true;
+                    }
+                });
+
+                if (hasConfirmedConflict) {
+                    setState('blocked', `${fieldValue} is already booked for ${day.label} ${slot.label} during this period. Please choose a different field, day, or time slot.`);
+                } else if (hasPendingConflict) {
+                    setState('warning', `Another team has a pending request for ${fieldValue} on ${day.label} ${slot.label} during this period. Submitting may create a scheduling conflict if theirs is approved.`);
+                } else {
+                    setState('clear', '');
+                }
+            } catch (error) {
+                if (token !== conflictCheckToken) return;
+                console.error('Unable to check field availability:', error);
+                setState('clear', '');
+            }
+        }
+
         function openGoogleCalendarRequest(requestType = 'lgs') {
+            const isBlocked = requestType === 'travel' ? travelConflictState === 'blocked' : lgsConflictState === 'blocked';
+            if (isBlocked) {
+                alert('This field is already booked for the selected day and time slot. Please choose a different field, day, or time slot.');
+                return;
+            }
             const data = collectPracticeRequestData(requestType);
             if (!data) return;
             if (requestType === 'travel') {
