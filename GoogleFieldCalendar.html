@@ -666,6 +666,25 @@
         </div>
     </div>
 
+    <div id="calendarLinkModal" class="modal-overlay" onclick="if (event.target === this) closeCalendarLinkModal()">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="calendarLinkModalTitle">
+            <button class="modal-close" aria-label="Close" onclick="closeCalendarLinkModal()">×</button>
+            <h2 id="calendarLinkModalTitle" class="modal-title">Open Google Calendar</h2>
+            <div class="modal-description">
+                Tap the link below to create the draft event. If it opens the Google Calendar app instead of
+                your browser, <strong>long-press the link and choose "Open in Safari" (or "Open in Chrome")</strong>
+                so all the event details, notes, and recurrence come through correctly.
+            </div>
+            <div class="modal-row" style="margin-top:16px;">
+                <a id="calendarLinkAnchor" href="#" target="_blank" rel="noopener" class="request-btn" style="display:inline-block;text-decoration:none;">Create Draft Calendar Request</a>
+            </div>
+            <div class="request-actions" style="justify-content:flex-start;align-items:center;">
+                <button type="button" id="calendarLinkCopyBtn">Copy Link</button>
+                <span id="calendarLinkCopyStatus" style="font-size:13px;color:#5f6368;"></span>
+            </div>
+        </div>
+    </div>
+
     <div id="eventModal" class="modal-overlay" onclick="if (event.target === this) closeEventPopup()">
         <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="eventModalTitle">
             <button class="modal-close" aria-label="Close event details" onclick="closeEventPopup()">×</button>
@@ -733,8 +752,9 @@
                     <label for="requestDetails"><strong>Notes</strong></label>
                     <textarea id="requestDetails" rows="4" placeholder="Add details, coach contact, opponent or special instructions"></textarea>
                 </div>
+                <div id="requestSubmitStatus" class="modal-hint" style="margin-left:0;"></div>
                 <div class="request-actions">
-                    <button id="requestSubmitBtn" type="button" onclick="openGoogleCalendarRequest('lgs')">Create Draft Calendar Request</button>
+                    <button id="requestSubmitBtn" type="button" onclick="submitPracticeRequest('lgs')">Submit Request</button>
                     <button type="button" onclick="closeRequestModal()">Cancel</button>
                 </div>
             </form>
@@ -806,8 +826,9 @@
                 <div class="modal-row" style="color:#c62828;font-weight:600;">
                     Valid insurance must be emailed to girlssoftballlgssc@gmail.com.
                 </div>
+                <div id="travelRequestSubmitStatus" class="modal-hint" style="margin-left:0;"></div>
                 <div class="request-actions">
-                    <button id="travelRequestSubmitBtn" type="button" onclick="openGoogleCalendarRequest('travel')">Create Draft Calendar Request</button>
+                    <button id="travelRequestSubmitBtn" type="button" onclick="submitPracticeRequest('travel')">Submit Request</button>
                     <button type="button" onclick="closeTravelRequestModal()">Cancel</button>
                 </div>
             </form>
@@ -818,6 +839,11 @@
         // Configuration
         const CALENDAR_ID = '54b6ccd7fdf7a8acc9ab44b1c8281023e228fd8eb6d9a6f694340f4dd04ec65e@group.calendar.google.com';
         const API_KEY = 'AIzaSyCFgql7Bpg9kqd1yV4Pm3HZMGLZqMMUk0k';
+        // Paste the "Web app" URL from your deployed Google Apps Script here to submit
+        // requests server-side instead of relying on a calendar.google.com deep link
+        // (which mobile OSes hijack into the Calendar app). Leave blank to use the
+        // old link/copy-to-browser fallback.
+        const PRACTICE_REQUEST_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzrbgMYGBp7qXBcAtXEauBYun8QhzzFHO4exC_FjGcntPiNE8oS8xrjUpK3zxiIwHsA/exec';
         
         let currentDate = new Date();
         let currentView = 'month';
@@ -1347,7 +1373,17 @@
 
         function isEventPending(evt) {
             const hasUnacceptedAttendee = Array.isArray(evt.attendees) && evt.attendees.some(att => att.email !== (evt.organizer?.email || '') && att.responseStatus && att.responseStatus !== 'accepted');
-            return (evt.status && evt.status !== 'confirmed') || hasUnacceptedAttendee;
+            return isTitlePending(evt.summary) || (evt.status && evt.status !== 'confirmed') || hasUnacceptedAttendee;
+        }
+
+        // Events submitted via the Apps Script webhook carry a "PENDING | " title prefix
+        // (so it's visible without opening the event) instead of an RSVP/status flag.
+        function isTitlePending(summary) {
+            return /^PENDING\s*\|/i.test((summary || '').trim());
+        }
+
+        function stripPendingSuffix(summary) {
+            return (summary || '').replace(/^PENDING\s*\|\s*/i, '').trim();
         }
 
         function timeRangesOverlap(slot, eventStart, eventEnd) {
@@ -1445,7 +1481,7 @@
             }
         }
 
-        function openGoogleCalendarRequest(requestType = 'lgs') {
+        function submitPracticeRequest(requestType = 'lgs') {
             const isBlocked = requestType === 'travel' ? travelConflictState === 'blocked' : lgsConflictState === 'blocked';
             if (isBlocked) {
                 alert('This field is already booked for the selected day and time slot. Please choose a different field, day, or time slot.');
@@ -1453,6 +1489,68 @@
             }
             const data = collectPracticeRequestData(requestType);
             if (!data) return;
+
+            const byDayMap = { Monday: 'MO', Tuesday: 'TU', Wednesday: 'WE', Thursday: 'TH', Friday: 'FR', Saturday: 'SA', Sunday: 'SU' };
+            const title = `PENDING | ${data.requestField}: ${data.requestDivision} ${data.requestTeam} ${data.requestCoach}`;
+
+            if (PRACTICE_REQUEST_WEBHOOK_URL) {
+                submitPracticeRequestToWebhook(requestType, data, title, byDayMap);
+                return;
+            }
+
+            // Fallback when no webhook is configured: build the Google Calendar template
+            // link and let the user open it (see openLegacyCalendarLink for why this can't
+            // be forced into the browser from JS on mobile).
+            openLegacyCalendarLink(requestType, data, title, byDayMap);
+        }
+
+        async function submitPracticeRequestToWebhook(requestType, data, title, byDayMap) {
+            const statusEl = document.getElementById(requestType === 'travel' ? 'travelRequestSubmitStatus' : 'requestSubmitStatus');
+            const buttonEl = document.getElementById(requestType === 'travel' ? 'travelRequestSubmitBtn' : 'requestSubmitBtn');
+            const payload = {
+                requestType,
+                field: data.requestField,
+                division: data.requestDivision,
+                teamName: data.requestTeam,
+                coachLastName: data.requestCoach,
+                firstPracticeDate: data.requestDate,
+                startTime: data.requestStartTime,
+                endTime: data.requestEndTime,
+                untilDate: data.period.end,
+                dayOfWeek: byDayMap[data.requestDay] || 'WE',
+                periodLabel: data.period.label,
+                dayLabel: data.requestDay,
+                timeLabel: data.timeLabel,
+                notes: data.requestDetails || '',
+                coachEmail: data.requestEmail || '',
+                coachPhone: data.requestPhone || '',
+                title
+            };
+
+            if (buttonEl) buttonEl.disabled = true;
+            if (statusEl) statusEl.textContent = 'Submitting request…';
+
+            try {
+                // Apps Script Web Apps don't send CORS headers, so the response body isn't
+                // readable from fetch(); mode:'no-cors' still delivers the POST to doPost().
+                await fetch(PRACTICE_REQUEST_WEBHOOK_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                if (statusEl) statusEl.textContent = '';
+                alert('Practice request submitted! An admin will review it shortly.');
+                if (requestType === 'travel') closeTravelRequestModal(); else closeRequestModal();
+            } catch (error) {
+                console.error('Unable to submit practice request:', error);
+                if (statusEl) statusEl.textContent = 'Unable to submit the request. Please check your connection and try again.';
+            } finally {
+                if (buttonEl) buttonEl.disabled = false;
+            }
+        }
+
+        function openLegacyCalendarLink(requestType, data, title, byDayMap) {
             if (requestType === 'travel') {
                 closeTravelRequestModal();
             } else {
@@ -1475,10 +1573,8 @@
                     ? 'Valid insurance must be emailed to girlssoftballlgssc@gmail.com.'
                     : 'Submit this event for approval from the calendar admins.'
             ].join('\n');
-            const byDayMap = { Monday: 'MO', Tuesday: 'TU', Wednesday: 'WE', Thursday: 'TH', Friday: 'FR', Saturday: 'SA', Sunday: 'SU' };
             const untilDate = data.period.end.replace(/-/g, '');
             const recurrenceRules = `RRULE:FREQ=WEEKLY;BYDAY=${byDayMap[data.requestDay] || 'WE'};UNTIL=${untilDate}`;
-            const title = `${data.requestField}: ${data.requestDivision} ${data.requestTeam} ${data.requestCoach}`;
             const params = new URLSearchParams({
                 action: 'TEMPLATE',
                 text: title,
@@ -1490,7 +1586,50 @@
             });
             params.append('add', CALENDAR_ID);
             const url = `https://calendar.google.com/calendar/r/eventedit?${params.toString()}`;
-            window.open(url, '_blank');
+
+            // iOS/Android intercept calendar.google.com at the OS level and hand it to the
+            // Google Calendar app (which can drop the recurrence/details/target calendar),
+            // and no client-side script can reliably override that. On mobile, show the link
+            // so the user can long-press "Open in Safari/Chrome" or copy it into the browser.
+            if (isMobileDevice()) {
+                showCalendarLinkModal(url);
+            } else {
+                window.open(url, '_blank');
+            }
+        }
+
+        function isMobileDevice() {
+            return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        }
+
+        function showCalendarLinkModal(url) {
+            const modal = document.getElementById('calendarLinkModal');
+            const link = document.getElementById('calendarLinkAnchor');
+            if (!modal || !link) {
+                window.open(url, '_blank');
+                return;
+            }
+            link.href = url;
+            modal.classList.add('active');
+            const copyBtn = document.getElementById('calendarLinkCopyBtn');
+            const copyStatus = document.getElementById('calendarLinkCopyStatus');
+            if (copyBtn) {
+                copyBtn.onclick = async () => {
+                    try {
+                        await navigator.clipboard.writeText(url);
+                        if (copyStatus) copyStatus.textContent = 'Link copied!';
+                    } catch (error) {
+                        if (copyStatus) copyStatus.textContent = 'Unable to copy automatically — long-press the link above to copy it.';
+                    }
+                };
+            }
+        }
+
+        function closeCalendarLinkModal() {
+            const modal = document.getElementById('calendarLinkModal');
+            if (modal) modal.classList.remove('active');
+            const copyStatus = document.getElementById('calendarLinkCopyStatus');
+            if (copyStatus) copyStatus.textContent = '';
         }
 
         function formatGoogleCalendarDateTime(date, time) {
@@ -1711,27 +1850,32 @@
                     const eventEnd = evt.end ? new Date(evt.end.dateTime || evt.end.date) : eventStart;
                     const startTime = formatTime(eventStart);
                     const endTime = formatTime(eventEnd);
-                    const upper = (evt.summary || '').toUpperCase();
-                    let category = determineField(evt.summary);
+                    const cleanedSummary = stripPendingSuffix(evt.summary);
+                    const upper = cleanedSummary.toUpperCase();
+                    let category = determineField(cleanedSummary);
                     if (upper.includes('CAGE 1') || upper.includes('CAGE1')) category = 'cage1';
                     if (upper.includes('CAGE 2') || upper.includes('CAGE2')) category = 'cage2';
                     // Apply single-selection filter — but if a text search is active, ignore the button filter
                     if ((!searchTokens || !searchTokens.length) && activeFilter !== 'all' && activeFilter !== category) return;
                     const fieldLabel = getFieldLabel(category);
-                    const { orgName, ageGroup } = parseEventSummary(evt.summary);
+                    const { orgName, ageGroup } = parseEventSummary(cleanedSummary);
                     const hasUnacceptedAttendee = Array.isArray(evt.attendees) && evt.attendees.some(att => att.email !== (evt.organizer?.email || '') && att.responseStatus && att.responseStatus !== 'accepted');
-                    const pending = (evt.status && evt.status !== 'confirmed') || hasUnacceptedAttendee;
-                    const statusLabel = pending ? (evt.status && evt.status !== 'confirmed' ? evt.status.toUpperCase() : 'PENDING RSVP') : '';
+                    const pending = isEventPending(evt);
+                    const statusLabel = pending
+                        ? (isTitlePending(evt.summary)
+                            ? 'PENDING'
+                            : (evt.status && evt.status !== 'confirmed' ? evt.status.toUpperCase() : 'PENDING RSVP'))
+                        : '';
                     // Apply tokenized text search filter (order-insensitive across org, age, summary, calendar)
                     if (searchTokens && searchTokens.length) {
-                        const combined = [orgName || '', ageGroup || '', evt.summary || '', (evt.organizer ? (evt.organizer.displayName || evt.organizer.email) : '')].join(' ').toUpperCase();
+                        const combined = [orgName || '', ageGroup || '', cleanedSummary || '', (evt.organizer ? (evt.organizer.displayName || evt.organizer.email) : '')].join(' ').toUpperCase();
                         for (const t of searchTokens) {
                             if (!combined.includes(t)) return;
                         }
                     }
 
                     dayEvents.push({
-                        title: evt.summary,
+                        title: cleanedSummary,
                         start: startTime,
                         end: endTime,
                         startDate: eventStart,
