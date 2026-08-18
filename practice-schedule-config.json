@@ -7,6 +7,7 @@
       "end": "2026-09-20",
       "days": ["monday", "tuesday", "thursday"],
       "slotIds": ["weekday_600_730", "weekday_730_900"],
+      "availableFrom": "2026-08-18",
       "enabled": true
     },
     {
@@ -16,6 +17,7 @@
       "end": "2026-11-06",
       "days": ["wednesday", "friday", "saturday", "sunday"],
       "slotIds": ["weekday_600_730", "weekday_730_900", "weekend_9_11", "weekend_11_1", "weekend_1_3", "weekend_3_5", "weekend_5_7", "weekend_7_9"],
+      "availableFrom": "2026-08-18",
       "enabled": true
     },
     {
@@ -63,7 +65,8 @@
       "end": "2026-11-06",
       "days": ["wednesday", "friday", "saturday", "sunday"],
       "slotIds": ["weekday_600_730", "weekday_730_900", "weekend_9_11", "weekend_11_1", "weekend_1_3", "weekend_3_5", "weekend_5_7", "weekend_7_9"],
-      "enabled": false
+      "availableFrom": "2026-08-24",
+      "enabled": true
     }
   ]
 }
