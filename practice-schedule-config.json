@@ -8,7 +8,7 @@
       "days": ["monday", "tuesday", "thursday"],
       "slotIds": ["weekday_600_730", "weekday_730_900"],
       "availableFrom": "2026-08-19",
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "fall-season-2026",
@@ -18,7 +18,7 @@
       "days": ["wednesday", "friday", "saturday", "sunday"],
       "slotIds": ["weekday_600_730", "weekday_730_900", "weekend_9_11", "weekend_11_1", "weekend_1_3", "weekend_3_5", "weekend_5_7", "weekend_7_9"],
       "availableFrom": "2026-08-19",
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "spring-preseason-2027",
@@ -66,6 +66,15 @@
       "days": ["wednesday", "friday", "saturday", "sunday"],
       "slotIds": ["weekday_600_730", "weekday_730_900", "weekend_9_11", "weekend_11_1", "weekend_1_3", "weekend_3_5", "weekend_5_7", "weekend_7_9"],
       "availableFrom": "2026-08-24",
+      "enabled": false
+    },
+    {
+      "id": "travel-winter-2026-2027",
+      "label": "Travel Winter Season: Nov 8, 2026 - Jan 31, 2027",
+      "start": "2026-11-08",
+      "end": "2027-01-31",
+      "days": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+      "slotIds": ["weekday_600_730", "weekday_730_900", "weekend_9_11", "weekend_11_1", "weekend_1_3", "weekend_3_5", "weekend_5_7", "weekend_7_9"],
       "enabled": true
     }
   ]
