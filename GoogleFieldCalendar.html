@@ -1396,14 +1396,40 @@
             return eventStartMinutes < slotEndMinutes && eventEndMinutes > slotStartMinutes;
         }
 
+        async function fetchAllCalendarEvents(timeMin, timeMax, errorMessage) {
+            const url = new URL(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`);
+            url.search = new URLSearchParams({
+                key: API_KEY,
+                timeMin,
+                timeMax,
+                singleEvents: 'true',
+                orderBy: 'startTime',
+                maxResults: '2500'
+            }).toString();
+
+            const allItems = [];
+            let pageToken = '';
+            do {
+                if (pageToken) {
+                    url.searchParams.set('pageToken', pageToken);
+                } else {
+                    url.searchParams.delete('pageToken');
+                }
+
+                const response = await fetch(url.toString());
+                if (!response.ok) throw new Error(errorMessage);
+                const data = await response.json();
+                if (Array.isArray(data.items)) allItems.push(...data.items);
+                pageToken = data.nextPageToken || '';
+            } while (pageToken);
+
+            return allItems;
+        }
+
         async function fetchEventsForRange(startDate, endDate) {
             const timeMin = new Date(`${startDate}T00:00:00`).toISOString();
             const timeMax = new Date(`${endDate}T23:59:59`).toISOString();
-            const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Failed to fetch calendar events for conflict check');
-            const data = await response.json();
-            return data.items || [];
+            return fetchAllCalendarEvents(timeMin, timeMax, 'Failed to fetch calendar events for conflict check');
         }
 
         // Checks the selected period/day/time slot/field against existing calendar events.
@@ -1662,13 +1688,11 @@
                 const timeMax = new Date(lastDay);
                 timeMax.setDate(timeMax.getDate() + (6 - lastDay.getDay()));
                 
-                const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}&singleEvents=true&orderBy=startTime`;
-                
-                const response = await fetch(url);
-                if (!response.ok) throw new Error('Failed to fetch calendar events');
-                
-                const data = await response.json();
-                events = data.items || [];
+                events = await fetchAllCalendarEvents(
+                    timeMin.toISOString(),
+                    timeMax.toISOString(),
+                    'Failed to fetch calendar events'
+                );
                 
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('error').style.display = 'none';
