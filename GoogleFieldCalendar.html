@@ -964,9 +964,9 @@
 
         async function loadPracticeScheduleConfig() {
             // Only use the remote config file; do not fall back to local or built-in defaults.
-            const url = REMOTE_SCHEDULE_CONFIG_URL;
+            const url = `${REMOTE_SCHEDULE_CONFIG_URL}?v=${Date.now()}`;
             try {
-                const response = await fetch(url);
+                const response = await fetch(url, { cache: 'no-store' });
                 if (!response.ok) throw new Error(`Schedule config not found at ${url}`);
                 const config = await response.json();
                 const normalizePeriod = (period) => ({
